@@ -1,339 +1,279 @@
+import os
 import time
-import pandas as pd
-import qrcode
-from PIL import Image, ImageDraw
 import string
 import random as rd
+import numpy as np
+import pandas as pd
 import cv2
+from PIL import Image, ImageDraw
+import qrcode
 from pyzbar.pyzbar import decode
 from datetime import datetime
-import os
-import numpy as np
+
+# Constants
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+FONT_SCALE = 0.5
+COLOR = (0, 0, 0)
+IMAGE_SIZE = (400, 400)
+QR_SIZE = (150, 150)
+TICKET_PATH = "./karcis"
+QR_PATH = "./qr_code"
+CAPTURE_PATH_IN = "./capture/masuk"
+CAPTURE_PATH_OUT = "./capture/keluar"
+DATABASE_PATH = "./database/Data_Parking.xlsx"
 
 def open_image(image_path):
-  try:
-    img = Image.open(image_path)
-    return img
-  except FileNotFoundError:
-    print(f"Error: Image file '{image_path}' not found.")
-    return None
-  except Exception as e:
-    print(f"Error opening image: {e}")
+    """Open an image file and return the image object."""
+    try:
+        return Image.open(image_path)
+    except FileNotFoundError:
+        print(f"Error: Image file '{image_path}' not found.")
+    except Exception as e:
+        print(f"Error opening image: {e}")
     return None
 
-def create_parking_ticket_jpg(kodParking,kodeTiket,qr_file_path, tgl_masuk, output_file):
-    img = np.zeros((400, 400, 3), np.uint8)
-    img[:] = 255
-
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.5
-    color = (0, 0, 0)
+def create_parking_ticket_jpg(kodParking, kodeTiket, qr_file_path, tgl_masuk, output_file):
+    """Create a parking ticket image with QR code."""
+    img = np.ones((*IMAGE_SIZE, 3), dtype=np.uint8) * 255
     now = datetime.now()
-    tanggal = now.strftime("%d %B %Y") 
+    tanggal = now.strftime("%d %B %Y")
     waktu = now.strftime("%H:%M:%S")
 
-   
-    cv2.putText(img, 'TANDA MASUK - UNIVERSITAS IPWIJA', (50, 50), font, font_scale, color, 2)
-    cv2.putText(img,f"="*23,(50, 70), font, font_scale, color, 2)
-    cv2.putText(img,f"Nomor Tiket    : {kodeTiket}", (50, 100), font, font_scale, color, 2)
-    cv2.putText(img, f"Tanggal Masuk : {tanggal}", (50, 120), font, font_scale, color, 2)
-    cv2.putText(img, f"Waktu Masuk   : {waktu}", (50, 140), font, font_scale, color, 2)
-    cv2.putText(img, f"           {kodParking}", (50, 320), font, font_scale, color, 2)
-    cv2.putText(img,f"="*23,(50, 360), font, font_scale, color, 2)
-    cv2.putText(img, "Terima kasih ", (50, 380), font, font_scale, color, 2)
+    # Add text to the image
+    cv2.putText(img, 'TANDA MASUK - UNIVERSITAS IPWIJA', (50, 50), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, "=" * 23, (50, 70), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, f"Nomor Tiket    : {kodeTiket}", (50, 100), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, f"Tanggal Masuk : {tanggal}", (50, 120), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, f"Waktu Masuk   : {waktu}", (50, 140), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, f"           {kodParking}", (50, 320), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, "=" * 23, (50, 360), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, "Terima kasih ", (50, 380), FONT, FONT_SCALE, COLOR, 2)
 
+    # Load and place the QR code
     try:
         qr_img = cv2.imread(qr_file_path)
+        qr_img = cv2.resize(qr_img, QR_SIZE)
+        img[150:300, 125:275] = qr_img
     except (FileNotFoundError, cv2.error):
         print(f"Error: QR code image '{qr_file_path}' not found or invalid.")
         return 
-    
-    img_width = 350 
-    qr_img = cv2.resize(qr_img, (150, 150))
-    qr_x = (img_width - 100) // 2
-    qr_y = 150
-
-    img[qr_y:qr_y+150, qr_x:qr_x+150] = qr_img
 
     pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-
-  
-    draw = ImageDraw.Draw(pil_img)
     pil_img.save(output_file)
 
-def capture(nama_file):
-    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # V4L2 backend
-
+def capture_image(filename):
+    """Capture an image from the camera and save it."""
+    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     if not cap.isOpened():
         print("Tidak dapat membuka kamera")
         return False
+
     ret, frame = cap.read()
-    waktu_sekarang = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(frame, waktu_sekarang, (20, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
-    if cv2.imwrite(nama_file, frame):
-        return True
-    else:
-        print("Gagal menyimpan foto")
-        return False
+    if ret:
+        cv2.putText(frame, datetime.now().strftime("%Y/%m/%d %H:%M:%S"), (20, 30), FONT, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        if cv2.imwrite(filename, frame):
+            return True
+        else:
+            print("Gagal menyimpan foto")
     cap.release()
+    return False
 
+def generate_parking_code(length=10):
+    """Generate a random parking code of specified length."""
+    characters = string.ascii_uppercase + string.digits
+    return ''.join(rd.choice(characters) for _ in range(length))
 
-def gen_kode_parking(panjang):
-    """Fungsi ini digunakan untuk mengenerate Kode String dan Angka Secara otomatis sepanjang 10 karakter"""
-    karakter = string.ascii_uppercase + string.digits
-    kode = ''.join(rd.choice(karakter) for _ in range(panjang))
-    return kode
-
-    
-def check_file(file_path):
+def file_exists(file_path):
+    """Check if a file exists."""
     return os.path.exists(file_path)
 
-
-
-def save_parking(parking):
-    # Path direktori dan file
-    path = "./database"
-    fileName = "Data_Parking.xlsx"
-    
-    # Pastikan direktori ada
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    # Konversi data parkir menjadi DataFrame
+def save_parking_data(parking):
+    """Save parking data to an Excel file."""
     dfParking = pd.DataFrame(parking)
+    
+    if not os.path.exists("./database"):
+        os.makedirs("./database")
 
     try:
-        # Cek jika file sudah ada, lalu gabungkan data baru
-        file_path = os.path.join(path, fileName)
-        if os.path.exists(file_path):
-            dfEx = pd.read_excel(file_path)
+        if file_exists(DATABASE_PATH):
+            dfEx = pd.read_excel(DATABASE_PATH)
             dfParking = pd.concat([dfEx, dfParking], ignore_index=True)
         
-        # Simpan data ke file Excel
-        dfParking.to_excel(file_path, index=False, sheet_name="Data_Parking")
-        print(f"Data berhasil disimpan ke file: {file_path}")
-    
-    except PermissionError as e:
-        print(f"PermissionError: {e}")
-        print("Pastikan file tidak sedang dibuka oleh program lain.")
-    
+        dfParking.to_excel(DATABASE_PATH, index=False, sheet_name="Data_Parking")
+        print(f"Data berhasil disimpan ke file: {DATABASE_PATH}")
+    except PermissionError:
+        print("PermissionError: File sedang dibuka oleh program lain.")
     except Exception as e:
         print(f"Error saat menyimpan file: {e}")
 
-
-
-
-def gen_QRcode(data, filename):
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
+def generate_qr_code(data, filename):
+    """Generate a QR code and save it to a file."""
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
     qr.add_data(data)
     qr.make(fit=True)
     imgQR = qr.make_image(fill_color="black", back_color="white")
     imgQR.save(filename)
+def validate_vehicle_number():
+    """Validate the vehicle registration number format."""
+    while True:
+        vehicle_number = input("Masukkan Nomor Kendaraan: ")
+        if len(vehicle_number.strip()) == 0:
+            print("Error: Nomor kendaraan tidak boleh kosong.")
+            continue  # Minta input lagi
 
+        parts = vehicle_number.split()
+        if len(parts) != 3:
+            print("Error: Format nomor kendaraan harus 'A 1234 XYZ'.")
+            continue  # Minta input lagi
 
-def validate_nomor_kendaraan(nomor_kendaraan):
-    if len(nomor_kendaraan.strip()) == 0:
-        print("Error: Nomor kendaraan tidak boleh kosong.")
-        return False
+        kode_wilayah, nomor_urut, kode_seri = parts
+        if not (kode_wilayah.isalpha() and len(kode_wilayah) == 1):
+            print("Error: Kode wilayah harus berupa satu huruf.")
+            continue  # Minta input lagi
+        if not (nomor_urut.isdigit() and len(nomor_urut) == 4):
+            print("Error: Nomor urut harus berupa 4 digit angka.")
+            continue  # Minta input lagi
+        if not (kode_seri.isalpha() and len(kode_seri) == 3):
+            print("Error: Kode seri harus berupa 3 huruf.")
+            continue  # Minta input lagi
 
-    plats = nomor_kendaraan.split()
-    if len(plats) != 3:
-        print("Error: Format nomor kendaraan harus 'A 1234 XYZ'.")
-        return False
+        return vehicle_number  # Kembalikan nomor kendaraan yang valid
 
-    kode_wilayah, nomor_urut, kode_seri = plats
-    if not kode_wilayah.isalpha() or len(kode_wilayah) != 1:
-        print("Error: Kode wilayah harus berupa satu huruf.")
-        return False
+def park_in(tgl_masuk, nama_petugas):
+    """Handle parking entry."""
+    kodParking = generate_parking_code(12)
+    kodeTiket = generate_parking_code(4)
 
-    if not nomor_urut.isdigit() or len(nomor_urut) != 4:
-        print("Error: Nomor urut harus berupa 4 digit angka.")
-        return False
+    # Memanggil fungsi validate_vehicle_number untuk mendapatkan input yang valid
+    vehicle_number = validate_vehicle_number()  # Menggunakan fungsi validasi
 
-    if not kode_seri.isalpha() or len(kode_seri) != 3:
-        print("Error: Kode seri harus berupa 3 huruf.")
-        return False
+    qr_code_filename = os.path.join(QR_PATH, f"{kodParking}.png")
+    ticket_filename = os.path.join(TICKET_PATH, f"{kodeTiket}.jpg")
+    capture_filename = os.path.join(CAPTURE_PATH_IN, f"{kodParking}.png")
 
-    return True
+    parking_data = {
+        'Kode_Parking': [kodParking],
+        'No_Kendaraan': [vehicle_number],
+        'Jenis_Kendaraan': [" "],
+        'Waktu_Masuk': [tgl_masuk],
+        'Waktu_Keluar': [" "],
+        'Durasi': [" "],
+        'Biaya': [" "],
+        'Nama_Petugas': [nama_petugas],
+        'Foto_Masuk': [capture_filename],
+        'Foto_Keluar': [" "]
+    }
 
+    save_parking_data(parking_data)
+    generate_qr_code(data=kodParking, filename=qr_code_filename)
+    capture_image(capture_filename)
+    create_parking_ticket_jpg(kodParking, kodeTiket, qr_code_filename, tgl_masuk, ticket_filename)
 
-
-def masuk(tgl_masuk, nama_petugas):
-    kodParking = gen_kode_parking(12)
-    kodeTiket = gen_kode_parking(4)
-    NoKendaraan = input("Masukan Nomor Kendaraan: ")
-    if validate_nomor_kendaraan(NoKendaraan):
-        pathCapture = "./capture/masuk"
-        nameQr = kodParking + ".png"
-        path = "./qr_code"
-        pathTiket = "./karcis"
-        namaTiket = kodeTiket + '.jpg'
-        FileTiket = os.path.join(pathTiket, namaTiket)
-        nameFile = os.path.join(path, nameQr)
-        nameCapture = os.path.join(pathCapture, nameQr)
-        if check_file(path):
-            print("Silahkan Masuk...")
-        else:
-            print("File QR Tidak berhasil disimpan")
-        
-        parking = {
-            'Kode_Parking':[kodParking],
-            'No_Kendaraan':[NoKendaraan],
-            'Jenis_Kendaraan':[" "],
-            'Waktu_Masuk':[tgl_masuk],
-            'Waktu_Keluar':[" "],
-            'Durasi':[" "],
-            'Biaya':[" "],
-            'Nama_Petugas':[nama_petugas],
-            'Foto_Masuk':[nameCapture],
-            'Foto_Keluar':[" "]
-                }
-        save_parking(parking)
-        gen_QRcode(data=kodParking, filename=nameFile)
-        capture(nameCapture)
-        create_parking_ticket_jpg(kodParking, kodeTiket, nameFile, tgl_masuk, FileTiket)
-        img = open_image(FileTiket)
-        if img:
-            img.show()
-            time.sleep(5)
-            img.close()
+    img = open_image(ticket_filename)
+    if img:
+        img.show()
+        time.sleep(5)
+        img.close()
     else:
-        print("\n")
-        print("+"*100)
+        print("\n" + "+" * 100)
         print("\t\t\tFormat nomor kendaraan salah.")
         print("\t\t\tSilahkan Masukan Nomor Kendaraan Yang Benar")
-        print("+"*100)
-        print("\n")
+        print("+" * 100 + "\n")
 
-    
-
-def update_data_parkir(fileExcel, id_parkir, jenis_kendaraan, waktu_keluar, durasi, biaya, foto_keluar):
+def update_parking_data(fileExcel, id_parkir, jenis_kendaraan, waktu_keluar, durasi, biaya, foto_keluar):
+    """Update parking data in the Excel file."""
     dfParkir = pd.read_excel(fileExcel, sheet_name="Data_Parking")
-    dfParkir['Jenis_Kendaraan'] = dfParkir['Jenis_Kendaraan'].astype('object')
-
-    # Cari data berdasarkan ID parkir
     index = dfParkir[dfParkir['Kode_Parking'] == id_parkir].index
+
     if index.empty:
-        print("\n")
-        print("+"*100)
+        print("\n" + "+" * 100)
         print("Data parkir tidak ditemukan.")
-        print("+"*100)
-        print("\n")
+        print("+" * 100 + "\n")
         return
 
-    dfParkir.loc[index, 'Jenis_Kendaraan'] = jenis_kendaraan
-    dfParkir.loc[index, 'Waktu_Keluar'] = waktu_keluar
-    dfParkir.loc[index, 'Durasi'] = durasi
-    dfParkir.loc[index, 'Biaya'] = biaya
-    dfParkir.loc[index, 'Foto_Keluar'] = foto_keluar
+    dfParkir.loc[index, ['Jenis_Kendaraan', 'Waktu_Keluar', 'Durasi', 'Biaya', 'Foto_Keluar']] = \
+        [jenis_kendaraan, waktu_keluar, durasi, biaya, foto_keluar]
     dfParkir.to_excel(fileExcel, sheet_name="Data_Parking", index=False)
 
-
-
-def keluar_parkir(qrCode):
-    path = "./database"
-    fileExcel = "Data_Parking.xlsx"
-    pathCapture = "./capture/keluar"
-    nameExcel = os.path.join(path, fileExcel)
-    nameQr = qrCode + ".png"
-    nameCapture = os.path.join(pathCapture, nameQr)
-    dfProduk = pd.read_excel(f"{path}/{fileExcel}", sheet_name="Data_Parking")
-    resultProduk = dfProduk[dfProduk['Kode_Parking'] == qrCode]
-    capture(nameCapture)
+def park_out(qr_code):
+    """Handle parking exit."""
+    dfProduk = pd.read_excel(DATABASE_PATH, sheet_name="Data_Parking")
+    resultProduk = dfProduk[dfProduk['Kode_Parking'] == qr_code]
+    capture_filename = os.path.join(CAPTURE_PATH_OUT, f"{qr_code}.png")
+    capture_image(capture_filename)
 
     if resultProduk.empty:
-        print("\n")
-        print("+"*100)
+        print("\n" + "+" * 100)
         print("Data Parkir tidak ditemukan.")
-        print("+"*100)
-        print("\n")
+        print("+" * 100 + "\n")
+        return
+
+    print("TANDA KELUAR - UNIVERSITAS IPWIJA")
+    print("=" * 50)
+
+    data_kendaraan = resultProduk.iloc[0]
+    print("=" * 50)
+    print(f"Kode Parking: {data_kendaraan['Kode_Parking']}")
+    print("=" * 50)
+    print("Jenis Kendaraan:")
+    print("1. Mobil")
+    print("2. Motor")
+    jenisKendaraan = int(input("Pilih Jenis Kendaraan: "))
+    jenisKendaraan = "Mobil" if jenisKendaraan == 1 else "Motor"
+
+    waktu_masuk = pd.to_datetime(data_kendaraan['Waktu_Masuk'])
+    waktu_keluar = datetime.now()
+    tgl_Keluar = waktu_keluar.strftime("%Y-%m-%d %H:%M:%S")
+
+    estimasi = (waktu_keluar - waktu_masuk).total_seconds()
+    jam = int(estimasi // 3600)  # Menghitung jam
+    menit = int((estimasi % 3600) // 60)  # Menghitung menit
+    detik = int(estimasi % 60)  # Menghitung detik
+    tarif_per_jam = 2000 if jenisKendaraan == "Motor" else 4000
+    total_tarif = tarif_per_jam if jam == 0 and menit < 60 else (jam * tarif_per_jam) + tarif_per_jam
+    total_tarif = round(total_tarif, -3)
+
+    update_parking_data(fileExcel=DATABASE_PATH, id_parkir=qr_code, jenis_kendaraan=jenisKendaraan, 
+                        waktu_keluar=tgl_Keluar, durasi=f"{jam:02}:{menit:02}:{detik:02}", 
+                        biaya=total_tarif, foto_keluar=capture_filename)
+
+    print(f"Jenis Kendaraan : {jenisKendaraan}")
+    print(f"Waktu Masuk : {waktu_masuk.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Waktu Keluar : {waktu_keluar.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Durasi Parkir : {jam:02}:{menit:02}:{detik:02}")
+    print(f"Total Tarif : Rp {total_tarif:,}")
+
+    while True:
+        try:
+            uang_bayar = float(input("Masukkan jumlah uang pembayaran: Rp "))
+            if uang_bayar >= total_tarif:
+                break
+            print("Uang pembayaran kurang. Silakan ulangi.")
+        except ValueError:
+            print("Input tidak valid. Masukkan angka.")
+
+    kembalian = uang_bayar - total_tarif
+    print("=" * 50)
+    print(f"Uang Bayar : Rp {uang_bayar}")
+    print(f"Kembalian : Rp {kembalian}")
+    print("=" * 50)
+
+    # Display the entry and exit images
+    img_masuk = cv2.imread(data_kendaraan['Foto_Masuk'])
+    img_keluar = cv2.imread(capture_filename)
+    if img_masuk is not None and img_keluar is not None:
+        height = min(img_masuk.shape[0], img_keluar.shape[0])
+        img_masuk_resized = cv2.resize(img_masuk, (int(img_masuk.shape[1] * height / img_masuk.shape[0]), height))
+        img_keluar_resized = cv2.resize(img_keluar, (int(img_keluar.shape[1] * height / img_keluar.shape[0]), height))
+        img_combined = cv2.hconcat([img_masuk_resized, img_keluar_resized])
+        cv2.imshow('Foto Masuk dan Keluar', img_combined)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
     else:
-        print("TANDA KELUAR - UNIVERSITAS IPWIJA")
-        print("="*50)
+        print("Salah satu atau kedua gambar tidak dapat dimuat.")
 
-        # Ambil data kendaraan dari DataFrame
-        data_kendaraan = resultProduk.iloc[0]  # Ambil baris pertama (asumsi hanya ada satu data)
-        print("="*50)
-        print(f"Kode Parking: {data_kendaraan['Kode_Parking']}")
-        print("="*50)
-        print("Jenis Kendaraan:")
-        print("1. Mobil")
-        print("2. Motor")
-        jenisKendaraan = int(input("Pilih Jenis Kendaraan: "))  # Asumsikan ada kolom 'Jenis_Kendaraan'
-        if jenisKendaraan == 1:
-            jenisKendaraan = "Mobil"
-        else:
-            jenisKendaraan = "Motor"
-        waktu_masuk = pd.to_datetime(data_kendaraan['Waktu_Masuk'])
-
-        # Ambil waktu keluar saat ini
-        waktu_keluar = datetime.now()
-        tgl_Keluar = waktu_keluar.strftime("%Y-%m-%d %H:%M:%S")
-        waktu_keluar = pd.to_datetime(tgl_Keluar)
-
-        # Hitung durasi parkir dan tarif
-        estimasi = (waktu_keluar - waktu_masuk).total_seconds()
-        jam, menit, detik = estimasi // 3600, (estimasi % 3600) // 60, estimasi % 60
-        tarif_per_jam = 2000 if jenisKendaraan == "Motor" else 4000
-        if jam == 0 and menit < 60:  # Jika durasi kurang dari 1 jam
-            total_tarif = tarif_per_jam
-        else:
-            # Hitung tarif normal jika durasi lebih dari atau sama dengan 1 jam
-            total_tarif = (jam * tarif_per_jam) + tarif_per_jam
-            total_tarif = round(total_tarif, -3)
-        update_data_parkir(fileExcel=nameExcel, id_parkir=qrCode, jenis_kendaraan=jenisKendaraan, 
-                        waktu_keluar=tgl_Keluar, durasi=f"{jam} jam {menit} menit {detik} detik", 
-                        biaya=total_tarif, foto_keluar=nameCapture)
-        print(f"Jenis Kendaraan : {jenisKendaraan}")
-        print(f"Waktu Masuk : {waktu_masuk}")
-        print(f"Waktu Keluar : {waktu_keluar}")
-        print(f"Durasi Parkir : {jam} jam {menit} menit {detik} detik")
-        print(f"Total Tarif : Rp {total_tarif:,}")
-        while True:
-            try:
-                uang_bayar = float(input("Masukkan jumlah uang pembayaran: Rp "))
-                if uang_bayar >= total_tarif:
-                    break
-                else:
-                    print("Uang pembayaran kurang. Silakan ulangi.")
-            except ValueError:
-                print("Input tidak valid. Masukkan angka.")
-
-
-        kembalian = uang_bayar - total_tarif
-        # Tampilkan informasi kendaraan
-        print("="*50)
-        print(f"Uang Bayar : Rp {uang_bayar}")
-        print(f"Kembalian : Rp {kembalian}")
-        print("="*50)
-        foto_Masuk = data_kendaraan['Foto_Masuk']
-        img_masuk = cv2.imread(foto_Masuk)
-        img_keluar = cv2.imread(nameCapture)
-        if img_masuk is None or img_keluar is None:
-            print("Salah satu atau kedua gambar tidak dapat dimuat.")
-        else:
-            # Resize gambar agar memiliki tinggi yang sama (opsional)
-            height = min(img_masuk.shape[0], img_keluar.shape[0])
-            img_masuk_resized = cv2.resize(img_masuk, (int(img_masuk.shape[1] * height / img_masuk.shape[0]), height))
-            img_keluar_resized = cv2.resize(img_keluar, (int(img_keluar.shape[1] * height / img_keluar.shape[0]), height))
-            
-            # Gabungkan gambar secara horizontal
-            img_combined = cv2.hconcat([img_masuk_resized, img_keluar_resized])
-            
-            # Tampilkan gambar gabungan
-            cv2.imshow('Foto Masuk dan Keluar', img_combined)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-        print("="*50)
-
-def baca_qr_code():
+def read_qr_code():
+    """Read QR code from camera."""
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     if not cap.isOpened():
         print("Error: Kamera tidak dapat diakses.")
@@ -353,14 +293,12 @@ def baca_qr_code():
             for obj in decoded_objects:
                 qr_data = obj.data.decode("utf-8")
                 print(f"QR Code ditemukan: {qr_data}")
-                # Lepaskan kamera dan tutup window sebelum masuk ke `keluar_parkir`
                 cap.release()
                 cv2.destroyAllWindows()
-                keluar_parkir(qr_data)  # Panggil fungsi setelah sumber daya dilepas
+                park_out(qr_data)
                 return
 
-        elapsed_time = time.time() - start_time
-        if elapsed_time > 10:
+        if time.time() - start_time > 10:
             print("Waktu habis. Tidak ada QR Code yang ditemukan.")
             break
 
@@ -371,7 +309,8 @@ def baca_qr_code():
     cap.release()
     cv2.destroyAllWindows()
 
-def menu_utama():
+def main_menu():
+    """Display the main menu and handle user input."""
     while True:
         print("*" * 100)
         print("Ujian Akhir Semester - Dasar Pemrograman")
@@ -382,10 +321,9 @@ def menu_utama():
         print("*" * 100)
         print("Sistem Parking Universitas IPWIJA")
         print("*" * 100)
-        tanggal_waktu = datetime.now()
-        tgl_masuk = tanggal_waktu.strftime("%Y-%m-%d %H:%M:%S")
+
+        tgl_masuk = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print("Nama Petugas: Reza Ramdan Permana")
-        nama_petugas = "Reza Ramdan Permana"
         print("Tanggal Operation: ", tgl_masuk)
         print("*" * 100)
         print("1. Parkir Masuk")
@@ -396,9 +334,9 @@ def menu_utama():
             pilihan = int(input("Masukkan Pilihan: "))
             print("*" * 100)
             if pilihan == 1:
-                masuk(tgl_masuk, nama_petugas)
+                park_in(tgl_masuk, "Reza Ramdan Permana")
             elif pilihan == 2:
-                baca_qr_code()
+                read_qr_code()
             elif pilihan == 3:
                 print("Keluar dari sistem. Terima kasih.")
                 break
@@ -407,4 +345,5 @@ def menu_utama():
         except ValueError:
             print("Input tidak valid. Masukkan angka.")
 
-menu_utama()
+if __name__ == "__main__":
+    main_menu()

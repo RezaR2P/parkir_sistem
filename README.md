@@ -1,3 +1,6 @@
 # parkir_sistem
 
-test push github
+Memperbaiki
+
+- Validasi input kendaraan
+- Update data kendaraan (Jam)
