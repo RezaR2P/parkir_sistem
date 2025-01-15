@@ -115,6 +115,7 @@ def generate_qr_code(data, filename):
     imgQR.save(filename)
 def validate_vehicle_number():
     """Validate the vehicle registration number format."""
+    dfParkir = pd.read_excel(DATABASE_PATH, sheet_name="Data_Parking")
     while True:
         vehicle_number = input("Masukkan Nomor Kendaraan: ")
         if len(vehicle_number.strip()) == 0:
@@ -133,9 +134,11 @@ def validate_vehicle_number():
             continue  
         if not (kode_seri.isalpha() and len(kode_seri) <= 3):
             print("Error: Kode seri tidak boleh lebih dari 3 huruf.")
-            continue  
-        return vehicle_number  # Kembalikan nomor kendaraan yang valid
-
+            continue 
+        if vehicle_number in dfParkir['No_Kendaraan'].values:
+            print("Error: Kendaraan dengan nomor ini sudah ada di parkir.")
+            continue
+        return vehicle_number 
 def park_in(tgl_masuk, nama_petugas):
     """Handle parking entry."""
     kodParking = generate_parking_code(12)
