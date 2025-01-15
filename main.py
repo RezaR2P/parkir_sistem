@@ -119,24 +119,21 @@ def validate_vehicle_number():
         vehicle_number = input("Masukkan Nomor Kendaraan: ")
         if len(vehicle_number.strip()) == 0:
             print("Error: Nomor kendaraan tidak boleh kosong.")
-            continue  # Minta input lagi
-
+            continue  
         parts = vehicle_number.split()
         if len(parts) != 3:
             print("Error: Format nomor kendaraan harus 'A 1234 XYZ'.")
-            continue  # Minta input lagi
-
+            continue  
         kode_wilayah, nomor_urut, kode_seri = parts
-        if not (kode_wilayah.isalpha() and len(kode_wilayah) == 1):
-            print("Error: Kode wilayah harus berupa satu huruf.")
-            continue  # Minta input lagi
-        if not (nomor_urut.isdigit() and len(nomor_urut) == 4):
-            print("Error: Nomor urut harus berupa 4 digit angka.")
-            continue  # Minta input lagi
-        if not (kode_seri.isalpha() and len(kode_seri) == 3):
-            print("Error: Kode seri harus berupa 3 huruf.")
-            continue  # Minta input lagi
-
+        if not (kode_wilayah.isalpha() and len(kode_wilayah) <= 2):
+            print("Error: Kode wilayah tidak boleh lebih dari dua huruf.")
+            continue  
+        if not (nomor_urut.isdigit() and len(nomor_urut) <= 4):
+            print("Error: Nomor urut tidak boleh lebih dari 4 digit angka.")
+            continue  
+        if not (kode_seri.isalpha() and len(kode_seri) <= 3):
+            print("Error: Kode seri tidak boleh lebih dari 3 huruf.")
+            continue  
         return vehicle_number  # Kembalikan nomor kendaraan yang valid
 
 def park_in(tgl_masuk, nama_petugas):
@@ -339,7 +336,6 @@ def main_menu():
         print("*" * 100)
         print("1. Parkir Masuk")
         print("2. Parkir Keluar")
-        print("3. Keluar Program")
         print("3. Lihat Data Parkir")
         print("4. Keluar Program")
 
