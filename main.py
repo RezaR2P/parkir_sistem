@@ -100,10 +100,26 @@ def save_parking_data(parking: dict):
     """Save parking data to an Excel file."""
     dfParking = pd.DataFrame(parking)
     
-    # Ensure the database directory exists
-    if not os.path.exists("./database"):
-        os.makedirs("./database")
-        logging.info("Database directory created.")
+  # Ensure the database directory exists
+if not os.path.exists("./database"):
+    os.makedirs("./database")
+    logging.info("Database directory created.")
+
+# Ensure the capture directories exist
+if not os.path.exists(CAPTURE_PATH_IN):
+    os.makedirs(CAPTURE_PATH_IN)
+    logging.info("Capture directory for incoming photos created.")
+if not os.path.exists(CAPTURE_PATH_OUT):
+    os.makedirs(CAPTURE_PATH_OUT)
+    logging.info("Capture directory for outgoing photos created.")
+
+# Ensure the ticket and QR code directories exist
+if not os.path.exists(TICKET_PATH):
+    os.makedirs(TICKET_PATH)
+    logging.info("Karcis (ticket) directory created.")
+if not os.path.exists(QR_PATH):
+    os.makedirs(QR_PATH)
+    logging.info("QR Code directory created.")
 
     try:
         # Check if the database file exists
