@@ -309,6 +309,17 @@ def read_qr_code():
     cap.release()
     cv2.destroyAllWindows()
 
+def lihat_data_parkir():
+    df_parkir = pd.read_excel(f"{DATABASE_PATH}", sheet_name='Data_Parking')
+    kolom_dipilih = [
+        'Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 'Durasi', 'Biaya'
+    ]
+    dfFiltered = df_parkir[kolom_dipilih]
+    pd.set_option('display.max_columns', None)  # Menampilkan semua kolom
+    pd.set_option('display.width', 1000)        # Lebar tampilan maksimal
+    pd.set_option('display.max_colwidth', None) # Menampilkan seluruh isi kolom
+    print(dfFiltered.tail(10))
+
 def main_menu():
     """Display the main menu and handle user input."""
     while True:
@@ -329,6 +340,8 @@ def main_menu():
         print("1. Parkir Masuk")
         print("2. Parkir Keluar")
         print("3. Keluar Program")
+        print("3. Lihat Data Parkir")
+        print("4. Keluar Program")
 
         try:
             pilihan = int(input("Masukkan Pilihan: "))
@@ -338,6 +351,8 @@ def main_menu():
             elif pilihan == 2:
                 read_qr_code()
             elif pilihan == 3:
+                lihat_data_parkir()
+            elif pilihan == 4:
                 print("Keluar dari sistem. Terima kasih.")
                 break
             else:
