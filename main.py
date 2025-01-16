@@ -15,17 +15,28 @@ from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH,
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Constants
+TARIF_MOTOR = 2000
+TARIF_MOBIL = 4000
+KEMBALIAN_DEFAULT = 4000
+
 def initialize_database():
     """Ensure the database directory and file exist."""
     if not os.path.exists("./database"):
         os.makedirs("./database")
         logging.info("Database directory created.")
 
+     # Ensure the 'laporan' directory exists
+    laporan_dir = "./laporan"
+    if not os.path.exists(laporan_dir):
+        os.makedirs(laporan_dir)
+        logging.info("Laporan directory created.")
+
     if not os.path.exists(DATABASE_PATH):
         empty_df = pd.DataFrame(columns=['Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 
                                           'Waktu_Masuk', 'Waktu_Keluar', 'Durasi', 
-                                          'Biaya', 'Nama_Petugas', 'Foto_Masuk', 
-                                          'Foto_Keluar'])
+                                          'Biaya', 'Uang_Pembayaran', 'Nama_Petugas', 
+                                          'Foto_Masuk', 'Foto_Keluar'])
         empty_df.to_excel(DATABASE_PATH, index=False, sheet_name="Data_Parking")
         logging.info(f"Database file '{DATABASE_PATH}' created.")
     else:
@@ -48,7 +59,7 @@ def create_parking_ticket_jpg(kodParking: str, kodeTiket: str, qr_file_path: str
     tanggal = now.strftime("%d %B %Y")
     waktu = now.strftime("%H:%M:%S")
 
-# Add text to the image
+    # Add text to the image
     cv2.putText(img, 'TANDA MASUK - UNIVERSITAS IPWIJA', (50, 50), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, "=" * 23, (50, 70), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, f"Nomor Tiket    : {kodeTiket}", (50, 100), FONT, FONT_SCALE, COLOR, 2)
@@ -100,26 +111,26 @@ def save_parking_data(parking: dict):
     """Save parking data to an Excel file."""
     dfParking = pd.DataFrame(parking)
     
-  # Ensure the database directory exists
-if not os.path.exists("./database"):
-    os.makedirs("./database")
-    logging.info("Database directory created.")
+    # Ensure the database directory exists
+    if not os.path.exists("./database"):
+        os.makedirs("./database")
+        logging.info("Database directory created.")
 
-# Ensure the capture directories exist
-if not os.path.exists(CAPTURE_PATH_IN):
-    os.makedirs(CAPTURE_PATH_IN)
-    logging.info("Capture directory for incoming photos created.")
-if not os.path.exists(CAPTURE_PATH_OUT):
-    os.makedirs(CAPTURE_PATH_OUT)
-    logging.info("Capture directory for outgoing photos created.")
+    # Ensure the capture directories exist
+    if not os.path.exists(CAPTURE_PATH_IN):
+        os.makedirs(CAPTURE_PATH_IN)
+        logging.info("Capture directory for incoming photos created.")
+    if not os.path.exists(CAPTURE_PATH_OUT):
+        os.makedirs(CAPTURE_PATH_OUT)
+        logging.info("Capture directory for outgoing photos created.")
 
-# Ensure the ticket and QR code directories exist
-if not os.path.exists(TICKET_PATH):
-    os.makedirs(TICKET_PATH)
-    logging.info("Karcis (ticket) directory created.")
-if not os.path.exists(QR_PATH):
-    os.makedirs(QR_PATH)
-    logging.info("QR Code directory created.")
+    # Ensure the ticket and QR code directories exist
+    if not os.path.exists(TICKET_PATH):
+        os.makedirs(TICKET_PATH)
+        logging.info("Karcis (ticket) directory created.")
+    if not os.path.exists(QR_PATH):
+        os.makedirs(QR_PATH)
+        logging.info("QR Code directory created.")
 
     try:
         # Check if the database file exists
@@ -127,8 +138,8 @@ if not os.path.exists(QR_PATH):
             # Create an empty DataFrame with the required columns
             empty_df = pd.DataFrame(columns=['Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 
                                               'Waktu_Masuk', 'Waktu_Keluar', 'Durasi', 
-                                              'Biaya', 'Nama_Petugas', 'Foto_Masuk', 
-                                              'Foto_Keluar'])
+                                              'Biaya', 'Uang_Pembayaran', 'Nama_Petugas', 
+                                              'Foto_Masuk', 'Foto_Keluar'])
             empty_df.to_excel(DATABASE_PATH, index=False, sheet_name="Data_Parking")
             logging.info(f"Database file '{DATABASE_PATH}' created.")
 
@@ -167,7 +178,7 @@ def validate_vehicle_number() -> str:
         return vehicle_number.upper()
 
 def validate_format(vehicle_number: str) -> bool:
-    """Check the format of the vehicle registration number."""
+    """Check the format of the vehicle registration number.""" 
     parts = vehicle_number.split()
     if len(parts) != 3:
         logging.error("Format nomor kendaraan harus 'A 1234 XYZ'.")
@@ -209,6 +220,7 @@ def park_in(tgl_masuk: str, nama_petugas: str):
         'Waktu_Keluar': [" "],
         'Durasi': [" "],
         'Biaya': [" "],
+        'Uang_Pembayaran': [" "],
         'Nama_Petugas': [nama_petugas],
         'Foto_Masuk': [capture_filename],
         'Foto_Keluar': [" "]
@@ -227,7 +239,7 @@ def park_in(tgl_masuk: str, nama_petugas: str):
     else:
         logging.error("Format nomor kendaraan salah. Silahkan Masukan Nomor Kendaraan Yang Benar.")
 
-def update_parking_data(fileExcel: str, id_parkir: str, jenis_kendaraan: str, waktu_keluar: str, durasi: str, biaya: float, foto_keluar: str):
+def update_parking_data(fileExcel: str, id_parkir: str, jenis_kendaraan: str, waktu_keluar: str, durasi: str, biaya: float, uang_pembayaran: float, foto_keluar: str):
     """Update parking data in the Excel file."""
     dfParkir = pd.read_excel(fileExcel, sheet_name="Data_Parking")
     index = dfParkir[dfParkir['Kode_Parking'] == id_parkir].index
@@ -236,8 +248,8 @@ def update_parking_data(fileExcel: str, id_parkir: str, jenis_kendaraan: str, wa
         logging.error("Data parkir tidak ditemukan.")
         return
 
-    dfParkir.loc[index, ['Jenis_Kendaraan', 'Waktu_Keluar', 'Durasi', 'Biaya', 'Foto_Keluar']] = \
-        [jenis_kendaraan, waktu_keluar, durasi, biaya, foto_keluar]
+    dfParkir.loc[index, ['Jenis_Kendaraan', 'Waktu_Keluar', 'Durasi', 'Biaya', 'Uang_Pembayaran', 'Foto_Keluar']] = \
+        [jenis_kendaraan, waktu_keluar, durasi, biaya, uang_pembayaran, foto_keluar]
     dfParkir.to_excel(fileExcel, sheet_name="Data_Parking", index=False)
 
 def park_out(qr_code: str):
@@ -252,12 +264,12 @@ def park_out(qr_code: str):
         return
 
     logging.info("TANDA KELUAR UNIVERSITAS IPWIJA")
-    logging.info("=" * 50)
+    print("=" * 50)
 
     data_kendaraan = resultProduk.iloc[0]
-    logging.info("=" * 50)
+    print("=" * 50)
     logging.info(f"Kode Parking: {data_kendaraan['Kode_Parking']}")
-    logging.info("=" * 50)
+    print("=" * 50)
     logging.info("Jenis Kendaraan:")
     logging.info("1. Mobil")
     logging.info("2. Motor")
@@ -272,20 +284,11 @@ def park_out(qr_code: str):
     jam = int(estimasi // 3600)  # Menghitung jam
     menit = int((estimasi % 3600) // 60)  # Menghitung menit
     detik = int(estimasi % 60)  # Menghitung detik
-    tarif_per_jam = 2000 if jenisKendaraan == "Motor" else 4000
+    tarif_per_jam = TARIF_MOTOR if jenisKendaraan == "Motor" else TARIF_MOBIL
     total_tarif = tarif_per_jam if jam == 0 and menit < 60 else (jam * tarif_per_jam) + tarif_per_jam
     total_tarif = round(total_tarif, -3)
 
-    update_parking_data(fileExcel=DATABASE_PATH, id_parkir=qr_code, jenis_kendaraan=jenisKendaraan, 
-                        waktu_keluar=tgl_Keluar, durasi=f"{jam:02}:{menit:02}:{detik:02}", 
-                        biaya=total_tarif, foto_keluar=capture_filename)
-
-    logging.info(f"Jenis Kendaraan : {jenisKendaraan}")
-    logging.info(f"Waktu Masuk : {waktu_masuk.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"Waktu Keluar : {waktu_keluar.strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info(f"Durasi Parkir : {jam:02}:{menit:02}:{detik:02}")
-    logging.info(f"Total Tarif : Rp {total_tarif:,}")
-
+    # Input payment
     while True:
         try:
             uang_bayar = float(input("Masukkan jumlah uang pembayaran: Rp "))
@@ -296,10 +299,20 @@ def park_out(qr_code: str):
             logging.warning("Input tidak valid. Masukkan angka.")
 
     kembalian = uang_bayar - total_tarif
-    logging.info("=" * 50)
+    print("=" * 50)
+    logging.info(f"Jenis Kendaraan : {jenisKendaraan}")
+    logging.info(f"Waktu Masuk : {waktu_masuk.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"Waktu Keluar : {waktu_keluar.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"Durasi Parkir : {jam:02}:{menit:02}:{detik:02}")
+    logging.info(f"Total Tarif : Rp {total_tarif:,}")
     logging.info(f"Uang Bayar : Rp {uang_bayar}")
     logging.info(f"Kembalian : Rp {kembalian}")
-    logging.info("=" * 50)
+    print("=" * 50)
+
+    # Update parking data
+    update_parking_data(fileExcel=DATABASE_PATH, id_parkir=qr_code, jenis_kendaraan=jenisKendaraan, 
+                        waktu_keluar=tgl_Keluar, durasi=f"{jam:02}:{menit:02}:{detik:02}", 
+                        biaya=total_tarif, uang_pembayaran=uang_bayar, foto_keluar=capture_filename)
 
     # Display the entry and exit images
     img_masuk = cv2.imread(data_kendaraan['Foto_Masuk'])
@@ -356,13 +369,54 @@ def lihat_data_parkir():
     """Display parking data."""
     df_parkir = pd.read_excel(DATABASE_PATH, sheet_name='Data_Parking')
     kolom_dipilih = [
-        'Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 'Durasi', 'Biaya'
+        'Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 'Durasi', 'Biaya', 'Uang_Pembayaran'
     ]
     dfFiltered = df_parkir[kolom_dipilih]
     pd.set_option('display.max_columns', None)  # Menampilkan semua kolom
     pd.set_option('display.width', 500)        # Lebar tampilan maksimal
     pd.set_option('display.max_colwidth', None) # Menampilkan seluruh isi kolom
     print(dfFiltered.tail(10))
+
+def generate_financial_report():
+    """Generate and save the financial report for parking transactions as an Excel file."""
+    try:
+        # Read the parking data from the Excel file
+        df_parkir = pd.read_excel(DATABASE_PATH, sheet_name='Data_Parking')
+
+        # Calculate total income and total change
+        total_income = df_parkir['Biaya'].sum()
+        total_kembalian = df_parkir['Uang_Pembayaran'].sum() - total_income
+        uang_perlu_disetorkan = total_income
+
+        # Create a DataFrame for the report
+        report_data = {
+            'Total Pemasukan': [total_income],
+            'Total Kembalian': [total_kembalian],
+            'Uang yang Perlu Disetorkan': [uang_perlu_disetorkan],
+            'Terbilang': [convert_number_to_words(uang_perlu_disetorkan)]
+        }
+        report_df = pd.DataFrame(report_data)
+
+        # Ensure the 'laporan' directory exists
+        laporan_dir = "./laporan"
+        if not os.path.exists(laporan_dir):
+            os.makedirs(laporan_dir)
+            logging.info("Laporan directory created.")
+
+        # Save the report to an Excel file
+        report_file_path = os.path.join(laporan_dir, "laporan_keuangan.xlsx")
+        report_df.to_excel(report_file_path, index=False, sheet_name="Laporan Keuangan")
+        logging.info(f"Laporan keuangan berhasil disimpan di {report_file_path}")
+
+    except Exception as e:
+        logging.error(f"Error saat membuat laporan keuangan: {e}")
+
+def convert_number_to_words(number):
+    """Convert a number to words (for the Terbilang part)."""
+    # This function should convert numbers to their word representation.
+    # You can implement this function based on your requirements.
+    # For simplicity, let's return a placeholder for now.
+    return "Delapan Ribu"
 
 def main_menu():
     """Display the main menu and handle user input."""
@@ -386,7 +440,8 @@ def main_menu():
         print("1. Parkir Masuk")
         print("2. Parkir Keluar")
         print("3. Lihat Data Parkir")
-        print("4. Keluar Program")
+        print("4. Buat Laporan Keuangan")  # New option for generating financial report
+        print("5. Keluar Program")
 
         try:
             pilihan = int(input("Masukkan Pilihan: "))
@@ -398,6 +453,8 @@ def main_menu():
             elif pilihan == 3:
                 lihat_data_parkir()
             elif pilihan == 4:
+                generate_financial_report()  # Call the report generation function
+            elif pilihan == 5:
                 logging.info("Keluar dari sistem. Terima kasih.")
                 break
             else:

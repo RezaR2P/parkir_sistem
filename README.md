@@ -19,6 +19,12 @@ Task
 4. Laporan Keuangan Parkir
    - Buat laporan keuangan dari hasil pendapatan parkir.
 
+Update dan sedang di perbaiki
+
+4. Laporan Keuangan Parkir
+
+- Buat laporan keuangan dari hasil pendapatan parkir.
+
 Done
 
 1. Menu Tampilan Data Parkir
