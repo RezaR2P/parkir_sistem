@@ -3,6 +3,9 @@
 import cv2
 
 # Constants
+TARIF_MOTOR = 2000
+TARIF_MOBIL = 4000
+KEMBALIAN_DEFAULT = 4000
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_SCALE = 0.5
 COLOR = (0, 0, 0)
@@ -12,4 +15,6 @@ TICKET_PATH = "./karcis"
 QR_PATH = "./qr_code"
 CAPTURE_PATH_IN = "./capture/masuk"
 CAPTURE_PATH_OUT = "./capture/keluar"
-DATABASE_PATH = "./database/Data_Parking.xlsx"
+DATABASE_PATH = "./database"
+DATAPARKING_PATH = "./database/Data_Parking.xlsx"
+LAPORAN_PATH = "./laporan"

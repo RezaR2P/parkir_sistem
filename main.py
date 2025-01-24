@@ -10,35 +10,26 @@ import qrcode
 from pyzbar.pyzbar import decode
 from datetime import datetime
 import logging
-from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH, QR_PATH, CAPTURE_PATH_IN, CAPTURE_PATH_OUT, DATABASE_PATH
+from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH, QR_PATH, CAPTURE_PATH_IN, CAPTURE_PATH_OUT, DATABASE_PATH, DATAPARKING_PATH, TARIF_MOTOR, TARIF_MOBIL, KEMBALIAN_DEFAULT, LAPORAN_PATH
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Constants
-TARIF_MOTOR = 2000
-TARIF_MOBIL = 4000
-KEMBALIAN_DEFAULT = 4000
-
 def initialize_database():
-    """Ensure the database directory and file exist."""
-    if not os.path.exists("./database"):
-        os.makedirs("./database")
+    if not os.path.exists(DATABASE_PATH):
+        os.makedirs(DATABASE_PATH)
         logging.info("Database directory created.")
 
-     # Ensure the 'laporan' directory exists
-    laporan_dir = "./laporan"
-    if not os.path.exists(laporan_dir):
-        os.makedirs(laporan_dir)
+    if not os.path.exists(LAPORAN_PATH):
+        os.makedirs(LAPORAN_PATH)
         logging.info("Laporan directory created.")
 
-    if not os.path.exists(DATABASE_PATH):
+    if not os.path.exists(DATAPARKING_PATH):
         empty_df = pd.DataFrame(columns=['Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 
                                           'Waktu_Masuk', 'Waktu_Keluar', 'Durasi', 
                                           'Biaya', 'Uang_Pembayaran', 'Nama_Petugas', 
                                           'Foto_Masuk', 'Foto_Keluar'])
-        empty_df.to_excel(DATABASE_PATH, index=False, sheet_name="Data_Parking")
-        logging.info(f"Database file '{DATABASE_PATH}' created.")
+        empty_df.to_excel(DATAPARKING_PATH, index=False, sheet_name="Data_Parking")
+        logging.info(f"Database file '{DATAPARKING_PATH}' created.")
     else:
         logging.info("Database file already exists.")
 
@@ -59,7 +50,6 @@ def create_parking_ticket_jpg(kodParking: str, kodeTiket: str, qr_file_path: str
     tanggal = now.strftime("%d %B %Y")
     waktu = now.strftime("%H:%M:%S")
 
-    # Add text to the image
     cv2.putText(img, 'TANDA MASUK - UNIVERSITAS IPWIJA', (50, 50), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, "=" * 23, (50, 70), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, f"Nomor Tiket    : {kodeTiket}", (50, 100), FONT, FONT_SCALE, COLOR, 2)
@@ -69,7 +59,6 @@ def create_parking_ticket_jpg(kodParking: str, kodeTiket: str, qr_file_path: str
     cv2.putText(img, "=" * 23, (50, 360), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, "Terima kasih ", (50, 380), FONT, FONT_SCALE, COLOR, 2)
 
-    # Load and place the QR code
     try:
         qr_img = cv2.imread(qr_file_path)
         qr_img = cv2.resize(qr_img, QR_SIZE)
@@ -111,20 +100,16 @@ def save_parking_data(parking: dict):
     """Save parking data to an Excel file."""
     dfParking = pd.DataFrame(parking)
     
-    # Ensure the database directory exists
-    if not os.path.exists("./database"):
-        os.makedirs("./database")
+    if not os.path.exists(DATABASE_PATH):
+        os.makedirs(DATABASE_PATH)
         logging.info("Database directory created.")
 
-    # Ensure the capture directories exist
     if not os.path.exists(CAPTURE_PATH_IN):
         os.makedirs(CAPTURE_PATH_IN)
         logging.info("Capture directory for incoming photos created.")
     if not os.path.exists(CAPTURE_PATH_OUT):
         os.makedirs(CAPTURE_PATH_OUT)
         logging.info("Capture directory for outgoing photos created.")
-
-    # Ensure the ticket and QR code directories exist
     if not os.path.exists(TICKET_PATH):
         os.makedirs(TICKET_PATH)
         logging.info("Karcis (ticket) directory created.")
@@ -133,22 +118,20 @@ def save_parking_data(parking: dict):
         logging.info("QR Code directory created.")
 
     try:
-        # Check if the database file exists
-        if not file_exists(DATABASE_PATH):
-            # Create an empty DataFrame with the required columns
+        if not file_exists(DATAPARKING_PATH):
             empty_df = pd.DataFrame(columns=['Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 
                                               'Waktu_Masuk', 'Waktu_Keluar', 'Durasi', 
                                               'Biaya', 'Uang_Pembayaran', 'Nama_Petugas', 
                                               'Foto_Masuk', 'Foto_Keluar'])
-            empty_df.to_excel(DATABASE_PATH, index=False, sheet_name="Data_Parking")
-            logging.info(f"Database file '{DATABASE_PATH}' created.")
+            empty_df.to_excel(DATAPARKING_PATH, index=False, sheet_name="Data_Parking")
+            logging.info(f"Database file '{DATAPARKING_PATH}' created.")
 
-        if file_exists(DATABASE_PATH):
-            dfEx = pd.read_excel(DATABASE_PATH)
+        if file_exists(DATAPARKING_PATH):
+            dfEx = pd.read_excel(DATAPARKING_PATH)
             dfParking = pd.concat([dfEx, dfParking], ignore_index=True)
         
-        dfParking.to_excel(DATABASE_PATH, index=False, sheet_name="Data_Parking")
-        logging.info(f"Data berhasil disimpan ke file: {DATABASE_PATH}")
+        dfParking.to_excel(DATAPARKING_PATH, index=False, sheet_name="Data_Parking")
+        logging.info(f"Data berhasil disimpan ke file: {DATAPARKING_PATH}")
     except PermissionError:
         logging.error("PermissionError: File sedang dibuka oleh program lain.")
     except Exception as e:
@@ -164,7 +147,7 @@ def generate_qr_code(data: str, filename: str):
 
 def validate_vehicle_number() -> str:
     """Validate the vehicle registration number format and return it if valid."""
-    dfParkir = pd.read_excel(DATABASE_PATH, sheet_name="Data_Parking")
+    dfParkir = pd.read_excel(DATAPARKING_PATH, sheet_name="Data_Parking")
     while True:
         vehicle_number = input("Masukkan Nomor Kendaraan: ").strip()
         if not vehicle_number:
@@ -206,7 +189,7 @@ def park_in(tgl_masuk: str, nama_petugas: str):
     kodParking = generate_parking_code(12)
     kodeTiket = generate_parking_code(4)
 
-    vehicle_number = validate_vehicle_number()  # Get valid vehicle number
+    vehicle_number = validate_vehicle_number()
 
     qr_code_filename = os.path.join(QR_PATH, f"{kodParking}.png")
     ticket_filename = os.path.join(TICKET_PATH, f"{kodeTiket}.jpg")
@@ -254,7 +237,7 @@ def update_parking_data(fileExcel: str, id_parkir: str, jenis_kendaraan: str, wa
 
 def park_out(qr_code: str):
     """Handle parking exit."""
-    dfProduk = pd.read_excel(DATABASE_PATH, sheet_name="Data_Parking")
+    dfProduk = pd.read_excel(DATAPARKING_PATH, sheet_name="Data_Parking")
     resultProduk = dfProduk[dfProduk['Kode_Parking'] == qr_code]
     capture_filename = os.path.join(CAPTURE_PATH_OUT, f"{qr_code}.png")
     capture_image(capture_filename)
@@ -288,7 +271,6 @@ def park_out(qr_code: str):
     total_tarif = tarif_per_jam if jam == 0 and menit < 60 else (jam * tarif_per_jam) + tarif_per_jam
     total_tarif = round(total_tarif, -3)
 
-    # Input payment
     while True:
         try:
             uang_bayar = float(input("Masukkan jumlah uang pembayaran: Rp "))
@@ -309,12 +291,10 @@ def park_out(qr_code: str):
     logging.info(f"Kembalian : Rp {kembalian}")
     print("=" * 50)
 
-    # Update parking data
-    update_parking_data(fileExcel=DATABASE_PATH, id_parkir=qr_code, jenis_kendaraan=jenisKendaraan, 
+    update_parking_data(fileExcel=DATAPARKING_PATH, id_parkir=qr_code, jenis_kendaraan=jenisKendaraan, 
                         waktu_keluar=tgl_Keluar, durasi=f"{jam:02}:{menit:02}:{detik:02}", 
                         biaya=total_tarif, uang_pembayaran=uang_bayar, foto_keluar=capture_filename)
 
-    # Display the entry and exit images
     img_masuk = cv2.imread(data_kendaraan['Foto_Masuk'])
     img_keluar = cv2.imread(capture_filename)
     if img_masuk is not None and img_keluar is not None:
@@ -367,7 +347,7 @@ def read_qr_code():
 
 def lihat_data_parkir():
     """Display parking data."""
-    df_parkir = pd.read_excel(DATABASE_PATH, sheet_name='Data_Parking')
+    df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
     kolom_dipilih = [
         'Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 'Durasi', 'Biaya', 'Uang_Pembayaran'
     ]
@@ -380,15 +360,12 @@ def lihat_data_parkir():
 def generate_financial_report():
     """Generate and save the financial report for parking transactions as an Excel file."""
     try:
-        # Read the parking data from the Excel file
-        df_parkir = pd.read_excel(DATABASE_PATH, sheet_name='Data_Parking')
+        df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
 
-        # Calculate total income and total change
         total_income = df_parkir['Biaya'].sum()
         total_kembalian = df_parkir['Uang_Pembayaran'].sum() - total_income
         uang_perlu_disetorkan = total_income
 
-        # Create a DataFrame for the report
         report_data = {
             'Total Pemasukan': [total_income],
             'Total Kembalian': [total_kembalian],
@@ -397,14 +374,11 @@ def generate_financial_report():
         }
         report_df = pd.DataFrame(report_data)
 
-        # Ensure the 'laporan' directory exists
-        laporan_dir = "./laporan"
-        if not os.path.exists(laporan_dir):
-            os.makedirs(laporan_dir)
+        if not os.path.exists(LAPORAN_PATH):
+            os.makedirs(LAPORAN_PATH)
             logging.info("Laporan directory created.")
 
-        # Save the report to an Excel file
-        report_file_path = os.path.join(laporan_dir, "laporan_keuangan.xlsx")
+        report_file_path = os.path.join(LAPORAN_PATH, "laporan_keuangan.xlsx")
         report_df.to_excel(report_file_path, index=False, sheet_name="Laporan Keuangan")
         logging.info(f"Laporan keuangan berhasil disimpan di {report_file_path}")
 
@@ -420,7 +394,7 @@ def convert_number_to_words(number):
 
 def main_menu():
     """Display the main menu and handle user input."""
-    initialize_database()  # Ensure database is initialized
+    initialize_database()
 
     while True:
         print("*" * 50)
@@ -440,7 +414,7 @@ def main_menu():
         print("1. Parkir Masuk")
         print("2. Parkir Keluar")
         print("3. Lihat Data Parkir")
-        print("4. Buat Laporan Keuangan")  # New option for generating financial report
+        print("4. Buat Laporan Keuangan")
         print("5. Keluar Program")
 
         try:
@@ -453,7 +427,7 @@ def main_menu():
             elif pilihan == 3:
                 lihat_data_parkir()
             elif pilihan == 4:
-                generate_financial_report()  # Call the report generation function
+                generate_financial_report()
             elif pilihan == 5:
                 logging.info("Keluar dari sistem. Terima kasih.")
                 break
