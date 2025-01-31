@@ -358,34 +358,6 @@ def lihat_data_parkir():
     pd.set_option('display.max_colwidth', None) # Menampilkan seluruh isi kolom
     print(dfFiltered.tail(10))
 
-def generate_financial_report():
-    """Generate and save the financial report for parking transactions as an Excel file."""
-    try:
-        df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
-
-        total_income = df_parkir['Biaya'].sum()
-        total_kembalian = df_parkir['Uang_Pembayaran'].sum() - total_income
-        uang_perlu_disetorkan = total_income
-
-        summary_data = {
-            'Total Pemasukan': [total_income],
-            'Total Kembalian': [total_kembalian],
-            'Uang yang Perlu Disetorkan': [uang_perlu_disetorkan],
-            'Terbilang': [convert_number_to_words(uang_perlu_disetorkan)]
-        }
-        report_df = pd.DataFrame(report_data)
-
-        if not os.path.exists(LAPORAN_PATH):
-            os.makedirs(LAPORAN_PATH)
-            logging.info("Laporan directory created.")
-
-        report_file_path = os.path.join(LAPORAN_PATH, "laporan_keuangan.xlsx")
-        report_df.to_excel(report_file_path, index=False, sheet_name="Laporan Keuangan")
-        logging.info(f"Laporan keuangan berhasil disimpan di {report_file_path}")
-
-    except Exception as e:
-        logging.error(f"Error saat membuat laporan keuangan: {e}")
-
 def convert_number_to_words(number):
     """Convert a number to words in Bahasa Indonesia for the 'Terbilang' part."""
     try:
@@ -393,6 +365,64 @@ def convert_number_to_words(number):
     except NotImplementedError:
         logging.error("Bahasa Indonesia tidak didukung oleh num2words.")
         return str(number)  # Jika tidak bisa dikonversi, tetap tampilkan angka
+
+def calculate_totals(df):
+    """Calculate total income, total change, and amount to be deposited."""
+    total_income = df['Biaya'].sum()
+    total_kembalian = df['Uang_Pembayaran'].sum() - total_income
+    return total_income, total_kembalian, total_income  # Return income as the amount to be deposited
+
+def create_summary_data(total_income, total_kembalian, uang_perlu_disetorkan):
+    """Create summary data for the financial report."""
+    return {
+        'Deskripsi': ['Total Pemasukan', 'Total Kembalian', 'Uang yang Perlu Disetorkan', 'Terbilang'],
+        'Nilai': [
+            f"Rp {total_income:,}", 
+            f"Rp {total_kembalian:,}", 
+            f"Rp {uang_perlu_disetorkan:,}", 
+            convert_number_to_words(uang_perlu_disetorkan)
+        ]
+    }
+
+def generate_financial_report():
+    """Generate and save the financial report for parking transactions as an Excel file."""
+    try:
+        # Load data parkir
+        df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
+
+        # Log the DataFrame contents for debugging
+        logging.info(f"DataFrame contents:\n{df_parkir.head()}")
+
+        # Ensure numeric types for calculations
+        df_parkir['Biaya'] = pd.to_numeric(df_parkir['Biaya'], errors='coerce')
+        df_parkir['Uang_Pembayaran'] = pd.to_numeric(df_parkir['Uang_Pembayaran'], errors='coerce')
+
+        # Check for NaN values after conversion
+        if df_parkir['Biaya'].isnull().any() or df_parkir['Uang_Pembayaran'].isnull().any():
+            logging.warning("Some values in 'Biaya' or 'Uang_Pembayaran' could not be converted to numeric.")
+
+        # Calculate totals
+        total_income, total_kembalian, uang_perlu_disetorkan = calculate_totals(df_parkir)
+
+        # Create summary data
+        summary_data = create_summary_data(total_income, total_kembalian, uang_perlu_disetorkan)
+        report_df = pd.DataFrame(summary_data)
+
+        # Create directory if it doesn't exist
+        if not os.path.exists(LAPORAN_PATH):
+            os.makedirs(LAPORAN_PATH)
+            logging.info("Direktori laporan_keuangan berhasil dibuat.")
+
+        # Save the financial report to an Excel file
+        report_file_path = os.path.join(LAPORAN_PATH, "laporan_keuangan.xlsx")
+        with pd.ExcelWriter(report_file_path, engine="openpyxl") as writer:
+            df_parkir.to_excel(writer, index=False, sheet_name="Data Parkir")
+            report_df.to_excel(writer, index=False, sheet_name="Ringkasan Keuangan")
+
+        logging.info(f"Laporan keuangan berhasil disimpan di {report_file_path}")
+
+    except Exception as e:
+        logging.error(f"Terjadi kesalahan saat membuat laporan keuangan: {e}")
 
 def main_menu():
     """Display the main menu and handle user input."""
