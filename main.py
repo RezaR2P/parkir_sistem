@@ -9,6 +9,7 @@ from PIL import Image
 import qrcode
 from pyzbar.pyzbar import decode
 from datetime import datetime
+from num2words import num2words
 import logging
 from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH, QR_PATH, CAPTURE_PATH_IN, CAPTURE_PATH_OUT, DATABASE_PATH, DATAPARKING_PATH, TARIF_MOTOR, TARIF_MOBIL, KEMBALIAN_DEFAULT, LAPORAN_PATH
 
@@ -366,7 +367,7 @@ def generate_financial_report():
         total_kembalian = df_parkir['Uang_Pembayaran'].sum() - total_income
         uang_perlu_disetorkan = total_income
 
-        report_data = {
+        summary_data = {
             'Total Pemasukan': [total_income],
             'Total Kembalian': [total_kembalian],
             'Uang yang Perlu Disetorkan': [uang_perlu_disetorkan],
@@ -386,11 +387,12 @@ def generate_financial_report():
         logging.error(f"Error saat membuat laporan keuangan: {e}")
 
 def convert_number_to_words(number):
-    """Convert a number to words (for the Terbilang part)."""
-    # This function should convert numbers to their word representation.
-    # You can implement this function based on your requirements.
-    # For simplicity, let's return a placeholder for now.
-    return "Delapan Ribu"
+    """Convert a number to words in Bahasa Indonesia for the 'Terbilang' part."""
+    try:
+        return num2words(number, lang='id').replace("dan ", "").capitalize() + " Rupiah"
+    except NotImplementedError:
+        logging.error("Bahasa Indonesia tidak didukung oleh num2words.")
+        return str(number)  # Jika tidak bisa dikonversi, tetap tampilkan angka
 
 def main_menu():
     """Display the main menu and handle user input."""
