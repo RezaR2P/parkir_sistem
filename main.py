@@ -11,7 +11,7 @@ from pyzbar.pyzbar import decode
 from datetime import datetime
 from num2words import num2words
 import logging
-from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH, QR_PATH, CAPTURE_PATH_IN, CAPTURE_PATH_OUT, DATABASE_PATH, DATAPARKING_PATH, TARIF_MOTOR, TARIF_MOBIL, KEMBALIAN_DEFAULT, LAPORAN_PATH
+from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH, QR_PATH, CAPTURE_PATH_IN, CAPTURE_PATH_OUT, DATABASE_PATH, DATAPARKING_PATH, TARIF_MOTOR, TARIF_MOBIL, LAPORAN_PATH, REPORT_FILENAME_FORMAT
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -384,83 +384,141 @@ def create_summary_data(total_income, total_kembalian, uang_perlu_disetorkan):
         ]
     }
 
-def generate_financial_report():
-    """Generate and save the financial report for parking transactions as an Excel file."""
-    try:
-        # Load data parkir
-        df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
+def filter_data_by_period(df, period, tanggal=None, bulan=None, tahun=None):
+    """Filter parking data based on the selected period, tanggal, bulan, and tahun."""
+    now = datetime.now()
+    if period == 'hari':
+        # Jika tanggal, bulan, dan tahun tidak diberikan, gunakan hari ini
+        if tanggal is None:
+            tanggal = now.day
+        if bulan is None:
+            bulan = now.month
+        if tahun is None:
+            tahun = now.year
+        return df[(df['Waktu_Masuk'].dt.day == tanggal) & 
+                  (df['Waktu_Masuk'].dt.month == bulan) & 
+                  (df['Waktu_Masuk'].dt.year == tahun)]
+    elif period == 'bulan':
+        # Jika bulan dan tahun tidak diberikan, gunakan bulan dan tahun saat ini
+        if bulan is None:
+            bulan = now.month
+        if tahun is None:
+            tahun = now.year
+        return df[(df['Waktu_Masuk'].dt.month == bulan) & 
+                  (df['Waktu_Masuk'].dt.year == tahun)]
+    elif period == 'tahun':
+        # Jika tahun tidak diberikan, gunakan tahun saat ini
+        if tahun is None:
+            tahun = now.year
+        return df[df['Waktu_Masuk'].dt.year == tahun]
+    else:
+        raise ValueError("Periode laporan tidak valid.")
 
-        # Log the DataFrame contents for debugging
-        logging.info(f"DataFrame contents:\n{df_parkir.head()}")
+def generate_report_filename(period, tanggal=None, bulan=None, tahun=None):
+    """Generate a filename for the financial report based on the selected period, tanggal, bulan, and tahun."""
+    now = datetime.now()
+    if period == 'hari':
+        if tanggal is None:
+            tanggal = now.day
+        if bulan is None:
+            bulan = now.month
+        if tahun is None:
+            tahun = now.year
+        return REPORT_FILENAME_FORMAT[period].format(tanggal=f"{tahun}-{bulan:02}-{tanggal:02}")
+    elif period == 'bulan':
+        if bulan is None:
+            bulan = now.month
+        if tahun is None:
+            tahun = now.year
+        nama_bulan = datetime.strptime(str(bulan), "%m").strftime("%B")  # Konversi angka bulan ke nama bulan
+        return REPORT_FILENAME_FORMAT[period].format(bulan=nama_bulan, tahun=tahun)
+    elif period == 'tahun':
+        if tahun is None:
+            tahun = now.year
+        return REPORT_FILENAME_FORMAT[period].format(tahun=tahun)
+    else:
+        raise ValueError("Periode laporan tidak valid.")
+
+def generate_financial_report(period, tanggal=None, bulan=None, tahun=None):
+    """Generate and save the financial report for parking transactions based on the selected period, tanggal, bulan, and tahun."""
+    try:
+        # Load parking data
+        df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
+        df_parkir['Waktu_Masuk'] = pd.to_datetime(df_parkir['Waktu_Masuk'])
+
+        # Filter data based on the selected period, tanggal, bulan, and tahun
+        filtered_df = filter_data_by_period(df_parkir, period, tanggal, bulan, tahun)
 
         # Ensure numeric types for calculations
-        df_parkir['Biaya'] = pd.to_numeric(df_parkir['Biaya'], errors='coerce')
-        df_parkir['Uang_Pembayaran'] = pd.to_numeric(df_parkir['Uang_Pembayaran'], errors='coerce')
-
-        # Check for NaN values after conversion
-        if df_parkir['Biaya'].isnull().any() or df_parkir['Uang_Pembayaran'].isnull().any():
-            logging.warning("Some values in 'Biaya' or 'Uang_Pembayaran' could not be converted to numeric.")
+        filtered_df.loc[:, 'Biaya'] = pd.to_numeric(filtered_df['Biaya'], errors='coerce')
+        filtered_df.loc[:, 'Uang_Pembayaran'] = pd.to_numeric(filtered_df['Uang_Pembayaran'], errors='coerce')
 
         # Calculate totals
-        total_income, total_kembalian, uang_perlu_disetorkan = calculate_totals(df_parkir)
+        total_income, total_kembalian, uang_perlu_disetorkan = calculate_totals(filtered_df)
 
         # Create summary data
         summary_data = create_summary_data(total_income, total_kembalian, uang_perlu_disetorkan)
         report_df = pd.DataFrame(summary_data)
 
-        # Create directory if it doesn't exist
-        if not os.path.exists(LAPORAN_PATH):
-            os.makedirs(LAPORAN_PATH)
-            logging.info("Direktori laporan_keuangan berhasil dibuat.")
+        # Generate report filename
+        report_filename = generate_report_filename(period, tanggal, bulan, tahun)
+        report_file_path = os.path.join(LAPORAN_PATH, report_filename)
 
         # Save the financial report to an Excel file
-        report_file_path = os.path.join(LAPORAN_PATH, "laporan_keuangan.xlsx")
         with pd.ExcelWriter(report_file_path, engine="openpyxl") as writer:
-            df_parkir.to_excel(writer, index=False, sheet_name="Data Parkir")
+            filtered_df.to_excel(writer, index=False, sheet_name="Data Parkir")
             report_df.to_excel(writer, index=False, sheet_name="Ringkasan Keuangan")
 
         logging.info(f"Laporan keuangan berhasil disimpan di {report_file_path}")
 
     except Exception as e:
         logging.error(f"Terjadi kesalahan saat membuat laporan keuangan: {e}")
-
 def main_menu():
     """Display the main menu and handle user input."""
     initialize_database()
 
     while True:
         print("*" * 50)
-        print("Ujian Akhir Semester - Dasar Pemrograman")
-        print("*" * 50)
-        print("Nama : Reza Ramdan Permana")
-        print("Kelas : IK241")
-        print("*" * 50, "\n")
-        print("*" * 50)
         print("Sistem Parking Universitas IPWIJA")
-        print("*" * 50)
-
-        tgl_masuk = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print("Nama Petugas: Reza Ramdan Permana")
-        print("Tanggal Operation: ", tgl_masuk)
         print("*" * 50)
         print("1. Parkir Masuk")
         print("2. Parkir Keluar")
         print("3. Lihat Data Parkir")
         print("4. Buat Laporan Keuangan")
-        print("5. Keluar Program")
+        print("5. Hapus Data Parkir")
+        print("6. Keluar Program")
 
         try:
             pilihan = int(input("Masukkan Pilihan: "))
             print("*" * 50)
             if pilihan == 1:
-                park_in(tgl_masuk, "Reza Ramdan Permana")
+                park_in(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Reza Ramdan Permana")
             elif pilihan == 2:
                 read_qr_code()
             elif pilihan == 3:
                 lihat_data_parkir()
             elif pilihan == 4:
-                generate_financial_report()
+                print("1. Laporan Hari tertentu")
+                print("2. Laporan Bulan tertentu")
+                print("3. Laporan Tahun tertentu")
+                pilihan_laporan = int(input("Masukkan Pilihan Laporan: "))
+                if pilihan_laporan == 1:
+                    tanggal = int(input("Masukkan tanggal (1-31): "))
+                    bulan = int(input("Masukkan bulan (1-12): "))
+                    tahun = int(input("Masukkan tahun (contoh: 2023): "))
+                    generate_financial_report(period='hari', tanggal=tanggal, bulan=bulan, tahun=tahun)
+                elif pilihan_laporan == 2:
+                    bulan = int(input("Masukkan bulan (1-12): "))
+                    tahun = int(input("Masukkan tahun (contoh: 2023): "))
+                    generate_financial_report(period='bulan', bulan=bulan, tahun=tahun)
+                elif pilihan_laporan == 3:
+                    tahun = int(input("Masukkan tahun (contoh: 2023): "))
+                    generate_financial_report(period='tahun', tahun=tahun)
+                else:
+                    logging.warning("Pilihan laporan tidak valid. Silakan coba lagi.")
             elif pilihan == 5:
+                hapus_data_parkir()
+            elif pilihan == 6:
                 logging.info("Keluar dari sistem. Terima kasih.")
                 break
             else:

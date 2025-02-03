@@ -17,13 +17,13 @@ Task
    - Validasi agar kendaraan dengan nomor yang sudah masuk tidak bisa masuk lagi, kecuali kendaraan tersebut sudah keluar.
 
 4. Laporan Keuangan Parkir
+
    - Buat laporan keuangan dari hasil pendapatan parkir.
 
+5. Hapus Data Parkir
+   - Hapus data parkir yang sudah tidak berlaku.
+
 Update dan sedang di perbaiki
-
-4. Laporan Keuangan Parkir
-
-- Buat laporan keuangan dari hasil pendapatan parkir.
 
 Done
 
@@ -40,3 +40,11 @@ Done
 3. Cek Duplikasi Nomor Kendaraan
 
    - Validasi agar kendaraan dengan nomor yang sudah masuk tidak bisa masuk lagi, kecuali kendaraan tersebut sudah keluar.
+
+4. Laporan Keuangan Parkir
+
+   - Buat laporan keuangan dari hasil pendapatan parkir.
+
+Bugs
+
+- Validasi Waktu Keluar Kendaraan Harusnya ketika kendaraan keluar tidak bisa scanQR code keluar lagi
