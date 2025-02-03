@@ -193,7 +193,7 @@ def park_in(tgl_masuk: str, nama_petugas: str):
     vehicle_number = validate_vehicle_number()
 
     qr_code_filename = os.path.join(QR_PATH, f"{kodParking}.png")
-    ticket_filename = os.path.join(TICKET_PATH, f"{kodeTiket}.jpg")
+    ticket_filename = os.path.join(TICKET_PATH, f"{kodParking}.jpg")
     capture_filename = os.path.join(CAPTURE_PATH_IN, f"{kodParking}.png")
 
     parking_data = {
@@ -222,7 +222,6 @@ def park_in(tgl_masuk: str, nama_petugas: str):
         img.close()
     else:
         logging.error("Format nomor kendaraan salah. Silahkan Masukan Nomor Kendaraan Yang Benar.")
-
 def update_parking_data(fileExcel: str, id_parkir: str, jenis_kendaraan: str, waktu_keluar: str, durasi: str, biaya: float, uang_pembayaran: float, foto_keluar: str):
     """Update parking data in the Excel file."""
     dfParkir = pd.read_excel(fileExcel, sheet_name="Data_Parking")
@@ -265,9 +264,9 @@ def park_out(qr_code: str):
     tgl_Keluar = waktu_keluar.strftime("%Y-%m-%d %H:%M:%S")
 
     estimasi = (waktu_keluar - waktu_masuk).total_seconds()
-    jam = int(estimasi // 3600)  # Menghitung jam
-    menit = int((estimasi % 3600) // 60)  # Menghitung menit
-    detik = int(estimasi % 60)  # Menghitung detik
+    jam = int(estimasi // 3600) 
+    menit = int((estimasi % 3600) // 60) 
+    detik = int(estimasi % 60) 
     tarif_per_jam = TARIF_MOTOR if jenisKendaraan == "Motor" else TARIF_MOBIL
     total_tarif = tarif_per_jam if jam == 0 and menit < 60 else (jam * tarif_per_jam) + tarif_per_jam
     total_tarif = round(total_tarif, -3)
@@ -353,9 +352,9 @@ def lihat_data_parkir():
         'Kode_Parking', 'No_Kendaraan', 'Jenis_Kendaraan', 'Durasi', 'Biaya', 'Uang_Pembayaran'
     ]
     dfFiltered = df_parkir[kolom_dipilih]
-    pd.set_option('display.max_columns', None)  # Menampilkan semua kolom
-    pd.set_option('display.width', 500)        # Lebar tampilan maksimal
-    pd.set_option('display.max_colwidth', None) # Menampilkan seluruh isi kolom
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', 500)
+    pd.set_option('display.max_colwidth', None)
     print(dfFiltered.tail(10))
 
 def convert_number_to_words(number):
@@ -364,13 +363,13 @@ def convert_number_to_words(number):
         return num2words(number, lang='id').replace("dan ", "").capitalize() + " Rupiah"
     except NotImplementedError:
         logging.error("Bahasa Indonesia tidak didukung oleh num2words.")
-        return str(number)  # Jika tidak bisa dikonversi, tetap tampilkan angka
+        return str(number)
 
 def calculate_totals(df):
     """Calculate total income, total change, and amount to be deposited."""
     total_income = df['Biaya'].sum()
     total_kembalian = df['Uang_Pembayaran'].sum() - total_income
-    return total_income, total_kembalian, total_income  # Return income as the amount to be deposited
+    return total_income, total_kembalian, total_income
 
 def create_summary_data(total_income, total_kembalian, uang_perlu_disetorkan):
     """Create summary data for the financial report."""
@@ -388,7 +387,6 @@ def filter_data_by_period(df, period, tanggal=None, bulan=None, tahun=None):
     """Filter parking data based on the selected period, tanggal, bulan, and tahun."""
     now = datetime.now()
     if period == 'hari':
-        # Jika tanggal, bulan, dan tahun tidak diberikan, gunakan hari ini
         if tanggal is None:
             tanggal = now.day
         if bulan is None:
@@ -399,7 +397,6 @@ def filter_data_by_period(df, period, tanggal=None, bulan=None, tahun=None):
                   (df['Waktu_Masuk'].dt.month == bulan) & 
                   (df['Waktu_Masuk'].dt.year == tahun)]
     elif period == 'bulan':
-        # Jika bulan dan tahun tidak diberikan, gunakan bulan dan tahun saat ini
         if bulan is None:
             bulan = now.month
         if tahun is None:
@@ -407,7 +404,6 @@ def filter_data_by_period(df, period, tanggal=None, bulan=None, tahun=None):
         return df[(df['Waktu_Masuk'].dt.month == bulan) & 
                   (df['Waktu_Masuk'].dt.year == tahun)]
     elif period == 'tahun':
-        # Jika tahun tidak diberikan, gunakan tahun saat ini
         if tahun is None:
             tahun = now.year
         return df[df['Waktu_Masuk'].dt.year == tahun]
@@ -430,7 +426,7 @@ def generate_report_filename(period, tanggal=None, bulan=None, tahun=None):
             bulan = now.month
         if tahun is None:
             tahun = now.year
-        nama_bulan = datetime.strptime(str(bulan), "%m").strftime("%B")  # Konversi angka bulan ke nama bulan
+        nama_bulan = datetime.strptime(str(bulan), "%m").strftime("%B")
         return REPORT_FILENAME_FORMAT[period].format(bulan=nama_bulan, tahun=tahun)
     elif period == 'tahun':
         if tahun is None:
@@ -442,29 +438,22 @@ def generate_report_filename(period, tanggal=None, bulan=None, tahun=None):
 def generate_financial_report(period, tanggal=None, bulan=None, tahun=None):
     """Generate and save the financial report for parking transactions based on the selected period, tanggal, bulan, and tahun."""
     try:
-        # Load parking data
         df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name='Data_Parking')
         df_parkir['Waktu_Masuk'] = pd.to_datetime(df_parkir['Waktu_Masuk'])
 
-        # Filter data based on the selected period, tanggal, bulan, and tahun
         filtered_df = filter_data_by_period(df_parkir, period, tanggal, bulan, tahun)
 
-        # Ensure numeric types for calculations
         filtered_df.loc[:, 'Biaya'] = pd.to_numeric(filtered_df['Biaya'], errors='coerce')
         filtered_df.loc[:, 'Uang_Pembayaran'] = pd.to_numeric(filtered_df['Uang_Pembayaran'], errors='coerce')
 
-        # Calculate totals
         total_income, total_kembalian, uang_perlu_disetorkan = calculate_totals(filtered_df)
 
-        # Create summary data
         summary_data = create_summary_data(total_income, total_kembalian, uang_perlu_disetorkan)
         report_df = pd.DataFrame(summary_data)
 
-        # Generate report filename
         report_filename = generate_report_filename(period, tanggal, bulan, tahun)
         report_file_path = os.path.join(LAPORAN_PATH, report_filename)
 
-        # Save the financial report to an Excel file
         with pd.ExcelWriter(report_file_path, engine="openpyxl") as writer:
             filtered_df.to_excel(writer, index=False, sheet_name="Data Parkir")
             report_df.to_excel(writer, index=False, sheet_name="Ringkasan Keuangan")
@@ -473,6 +462,58 @@ def generate_financial_report(period, tanggal=None, bulan=None, tahun=None):
 
     except Exception as e:
         logging.error(f"Terjadi kesalahan saat membuat laporan keuangan: {e}")
+
+def hapus_data_parkir():
+    """Hapus data parkir beserta semua file terkait (foto, QR code, karcis)."""
+    try:
+        df_parkir = pd.read_excel(DATAPARKING_PATH, sheet_name="Data_Parking")
+
+        print("Pilih kriteria penghapusan data:")
+        print("1. Hapus berdasarkan Kode Parking")
+        print("2. Hapus berdasarkan Nomor Kendaraan")
+        pilihan_hapus = int(input("Masukkan pilihan: "))
+
+        if pilihan_hapus == 1:
+            kode_parking = input("Masukkan Kode Parking yang ingin dihapus: ").strip()
+            data_dihapus = df_parkir[df_parkir['Kode_Parking'] == kode_parking]
+        elif pilihan_hapus == 2:
+            nomor_kendaraan = input("Masukkan Nomor Kendaraan yang ingin dihapus: ").strip().upper()
+            data_dihapus = df_parkir[df_parkir['No_Kendaraan'] == nomor_kendaraan]
+        else:
+            logging.warning("Pilihan tidak valid. Silakan coba lagi.")
+            return
+
+        if not data_dihapus.empty:
+            for index, row in data_dihapus.iterrows():
+                if os.path.exists(row['Foto_Masuk']):
+                    os.remove(row['Foto_Masuk'])
+                    logging.info(f"File foto masuk '{row['Foto_Masuk']}' dihapus.")
+
+                if row['Foto_Keluar'] != " " and os.path.exists(row['Foto_Keluar']):
+                    os.remove(row['Foto_Keluar'])
+                    logging.info(f"File foto keluar '{row['Foto_Keluar']}' dihapus.")
+                
+                qr_file = os.path.join(QR_PATH, f"{row['Kode_Parking']}.png")
+                if os.path.exists(qr_file):
+                    os.remove(qr_file)
+                    logging.info(f"File QR code '{qr_file}' dihapus.")
+                
+                ticket_file = os.path.join(TICKET_PATH, f"{row['Kode_Parking']}.jpg")
+                if os.path.exists(ticket_file):
+                    os.remove(ticket_file)
+                    logging.info(f"File karcis '{ticket_file}' dihapus.")
+
+            df_parkir = df_parkir[~df_parkir['Kode_Parking'].isin(data_dihapus['Kode_Parking'])]
+            
+            df_parkir.to_excel(DATAPARKING_PATH, index=False, sheet_name="Data_Parking")
+            logging.info("Data parkir dan semua file terkait berhasil dihapus.")
+        else:
+            logging.warning("Data tidak ditemukan.")
+
+    except Exception as e:
+        logging.error(f"Terjadi kesalahan saat menghapus data parkir: {e}")
+
+
 def main_menu():
     """Display the main menu and handle user input."""
     initialize_database()

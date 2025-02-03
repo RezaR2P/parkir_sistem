@@ -45,6 +45,9 @@ Done
 
    - Buat laporan keuangan dari hasil pendapatan parkir.
 
+5. Hapus Data Parkir
+   - Hapus data parkir yang sudah tidak berlaku.
+
 Bugs
 
 - Validasi Waktu Keluar Kendaraan Harusnya ketika kendaraan keluar tidak bisa scanQR code keluar lagi
