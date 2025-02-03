@@ -93,12 +93,6 @@ parking_system/
 │
 ├── constants.py          # File konstanta
 ├── main.py               # Entry point aplikasi
-├── utils/                # Modul utilitas
-│   ├── file_utils.py     # Manajemen file
-│   ├── image_utils.py    # Manipulasi gambar
-│   ├── qr_utils.py       # QR code utilities
-│   ├── parking_utils.py  # Logika parkir
-│   └── report_utils.py   # Pembuatan laporan
 ├── database/             # Penyimpanan database
 │   └── Data_Parking.xlsx # File database parkir
 ├── capture/              # Penyimpanan foto kendaraan
@@ -135,10 +129,6 @@ Jika Anda ingin berkontribusi pada proyek ini, silakan ikuti langkah-langkah ber
 3. Commit perubahan Anda (git commit -m 'Tambahkan fitur baru').
 4. Push ke branch (git push origin fitur-baru).
 5. Buat Pull Request.
-
-## Lisensi
-
-Proyek ini dilisensikan di bawah MIT License.
 
 ## Catatan
 
