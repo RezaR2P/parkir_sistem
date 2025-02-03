@@ -1,5 +1,13 @@
 from constants import *
 
+TARIF_MOTOR = 2000
+TARIF_MOBIL = 4000
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+FONT_SCALE = 0.5
+COLOR = (0, 0, 0)
+IMAGE_SIZE = (400, 400)
+QR_SIZE = (150, 150)
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def initialize_database():
@@ -31,7 +39,7 @@ def open_image(image_path: str) -> Image:
         logging.error(f"Error opening image: {e}")
     return None
 
-def create_parking_ticket_jpg(kodParking: str, kodeTiket: str, qr_file_path: str, tgl_masuk: str, output_file: str):
+def create_parking_ticket_jpg(kodParking: str, vehicle_number: str, qr_file_path: str, output_file: str):
     """Create a parking ticket image with QR code."""
     img = np.ones((*IMAGE_SIZE, 3), dtype=np.uint8) * 255
     now = datetime.now()
@@ -40,7 +48,7 @@ def create_parking_ticket_jpg(kodParking: str, kodeTiket: str, qr_file_path: str
 
     cv2.putText(img, 'TANDA MASUK - UNIVERSITAS IPWIJA', (50, 50), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, "=" * 23, (50, 70), FONT, FONT_SCALE, COLOR, 2)
-    cv2.putText(img, f"Nomor Tiket    : {kodeTiket}", (50, 100), FONT, FONT_SCALE, COLOR, 2)
+    cv2.putText(img, f"Nomor Kendaraan : {vehicle_number}", (50, 100), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, f"Tanggal Masuk : {tanggal}", (50, 120), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, f"Waktu Masuk   : {waktu}", (50, 140), FONT, FONT_SCALE, COLOR, 2)
     cv2.putText(img, f"           {kodParking}", (50, 320), FONT, FONT_SCALE, COLOR, 2)
@@ -175,8 +183,6 @@ def is_vehicle_parked(dfParkir: pd.DataFrame, vehicle_number: str) -> bool:
 def park_in(tgl_masuk: str, nama_petugas: str):
     """Handle parking entry."""
     kodParking = generate_parking_code(12)
-    kodeTiket = generate_parking_code(4)
-
     vehicle_number = validate_vehicle_number()
 
     qr_code_filename = os.path.join(QR_PATH, f"{kodParking}.png")
@@ -200,7 +206,7 @@ def park_in(tgl_masuk: str, nama_petugas: str):
     save_parking_data(parking_data)
     generate_qr_code(data=kodParking, filename=qr_code_filename)
     capture_image(capture_filename)
-    create_parking_ticket_jpg(kodParking, kodeTiket, qr_code_filename, tgl_masuk, ticket_filename)
+    create_parking_ticket_jpg(kodParking, vehicle_number, qr_code_filename, ticket_filename)
 
     img = open_image(ticket_filename)
     if img:
