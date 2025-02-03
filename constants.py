@@ -1,8 +1,17 @@
-# constants.py
-
 import cv2
+import os
+import time
+import string
+import random as rd
+import numpy as np
+import pandas as pd
+from PIL import Image
+import qrcode
+from pyzbar.pyzbar import decode
+from datetime import datetime
+from num2words import num2words
+import logging
 
-# Constants
 TARIF_MOTOR = 2000
 TARIF_MOBIL = 4000
 FONT = cv2.FONT_HERSHEY_SIMPLEX
@@ -17,9 +26,3 @@ CAPTURE_PATH_OUT = "./capture/keluar"
 DATABASE_PATH = "./database"
 DATAPARKING_PATH = "./database/Data_Parking.xlsx"
 LAPORAN_PATH = "./laporan"
-
-REPORT_FILENAME_FORMAT = {
-    'hari': 'laporan_keuangan_{tanggal}.xlsx',
-    'bulan': 'laporan_keuangan_{bulan}_{tahun}.xlsx',
-    'tahun': 'laporan_keuangan_{tahun}.xlsx'
-}

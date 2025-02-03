@@ -1,17 +1,4 @@
-import os
-import time
-import string
-import random as rd
-import numpy as np
-import pandas as pd
-import cv2
-from PIL import Image
-import qrcode
-from pyzbar.pyzbar import decode
-from datetime import datetime
-from num2words import num2words
-import logging
-from constants import FONT, FONT_SCALE, COLOR, IMAGE_SIZE, QR_SIZE, TICKET_PATH, QR_PATH, CAPTURE_PATH_IN, CAPTURE_PATH_OUT, DATABASE_PATH, DATAPARKING_PATH, TARIF_MOTOR, TARIF_MOBIL, LAPORAN_PATH, REPORT_FILENAME_FORMAT
+from constants import *
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
